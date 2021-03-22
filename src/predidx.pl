@@ -19,6 +19,7 @@
 :- module(predidx, [
         tbl_create/3,
         tbl_has/2, tbl_has/3,
+        tbl_find/4,
         tbl_get/3,
         tbl_set/3,
         tbl_unset/2
@@ -66,6 +67,13 @@ tbl_has(TblId, Idx) :-
     integer(TblId), var(Idx),
     pl_tbl_next_idx(TblId, Idx).
 
+% tbl_find(+Number, +Number, +Term, -Number)
+% (nondeterministic) iterate through indezes
+% matching equality criterium on field (0 indexed)
+tbl_find(TblId, NField, Eq, Idx) :-
+    integer(TblId), integer(NField), nonvar(Eq), var(Idx),
+    pl_tbl_find_idx(TblId, NField, Eq, Idx).
+
 % tbl_has(+Number, -Number, -List)
 % (nondeterministic) iterate through indezes and values
 tbl_has(TblId, Idx, Values) :-
@@ -90,4 +98,10 @@ tbl_get(TblId, Idx, Values) :-
 tbl_unset(TblId, Idx) :-
     integer(TblId), nonvar(Idx),
     pl_tbl_invalidate_idx(TblId, Idx).
+
+% tbl_info(+Number, -List)
+% return a list of descriptors about the indexed predicate
+tbl_info(TblId, Desc) :-
+    integer(TblId), var(Desc),
+    pl_tbl_info(TblId, Desc).
 

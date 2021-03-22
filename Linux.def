@@ -18,10 +18,10 @@
 
 # C/C++ compiler and flags
 CC = gcc
-OPT = -O1 #-O3 -pipe -fomit-frame-pointer
+OPT = -O2 #-O3 -pipe -fomit-frame-pointer
 DEF = -D$(ARCH)
-#DEBUG = -g0  # nodebug
-DEBUG = -g
+DEBUG = -g0  # nodebug
+#DEBUG = -g
 WARN = -Wall
 PIC = -fPIC
 

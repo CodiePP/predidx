@@ -15,6 +15,8 @@ foreign_t swi_tbl_next_idx(term_t tbl_id, term_t idx, control_t handle);
 foreign_t swi_tbl_get_idx_value(term_t tbl_id, term_t idx, term_t values);
 foreign_t swi_tbl_set_idx_value(term_t tbl_id, term_t idx, term_t values);
 foreign_t swi_tbl_invalidate_idx(term_t tbl_id, term_t idx);
+foreign_t swi_tbl_info(term_t tbl_id, term_t desc);
+foreign_t swi_tbl_find_idx(term_t in_tblid, term_t in_ncol, term_t in_value, term_t out_idx, control_t handle);
 
 
 install_t install()
@@ -25,6 +27,8 @@ install_t install()
         PL_register_foreign("pl_tbl_get_idx_value", 3, swi_tbl_get_idx_value, 0);
         PL_register_foreign("pl_tbl_set_idx_value", 3, swi_tbl_set_idx_value, 0);
         PL_register_foreign("pl_tbl_invalidate_idx", 2, swi_tbl_invalidate_idx, 0);
+        PL_register_foreign("pl_tbl_info", 2, swi_tbl_info, 0);
+        PL_register_foreign("pl_tbl_find_idx", 4, swi_tbl_find_idx, PL_FA_NONDETERMINISTIC);
 }
 
 /* global memory */
@@ -47,6 +51,61 @@ foreign_t access_tbl_id (term_t in_tblid, int *tblid)
   if (!PL_is_integer(in_tblid)) { PL_fail; }
   if (!PL_get_integer(in_tblid, tblid)) { PL_fail; }
   return validate_tbl_id(*tblid);
+}
+
+foreign_t swi_tbl_info(term_t in_tblid, term_t out_values)
+{
+  int tblid;
+  if (!access_tbl_id(in_tblid, &tblid)) { PL_fail; }
+  struct tabledef *tbl = &tbl_defs[tblid];
+  if (!PL_is_variable(out_values)) { PL_fail; }
+
+  term_t ele = PL_new_term_ref();
+  term_t lst = PL_copy_term_ref(out_values);
+
+  functor_t fct;
+
+  fct = PL_new_functor(PL_new_atom("name"), 1);
+  if (!PL_unify_list(lst, ele, lst)) { PL_fail; }
+  if (!PL_unify_term(ele, PL_FUNCTOR, fct,
+                          PL_STRING,  tbl->name)) { PL_fail; }
+
+  fct = PL_new_functor(PL_new_atom("arity"), 1);
+  if (!PL_unify_list(lst, ele, lst)) { PL_fail; }
+  if (!PL_unify_term(ele, PL_FUNCTOR, fct,
+                          PL_LONG,    tbl->arity)) { PL_fail; }
+
+  fct = PL_new_functor(PL_new_atom("max_rows"), 1);
+  if (!PL_unify_list(lst, ele, lst)) { PL_fail; }
+  if (!PL_unify_term(ele, PL_FUNCTOR, fct,
+                          PL_LONG,    tbl->max_rows)) { PL_fail; }
+
+  fct = PL_new_functor(PL_new_atom("alloc_rows"), 1);
+  if (!PL_unify_list(lst, ele, lst)) { PL_fail; }
+  if (!PL_unify_term(ele, PL_FUNCTOR, fct,
+                          PL_LONG,    tbl->alloc_rows)) { PL_fail; }
+
+  fct = PL_new_functor(PL_new_atom("row_size"), 1);
+  if (!PL_unify_list(lst, ele, lst)) { PL_fail; }
+  if (!PL_unify_term(ele, PL_FUNCTOR, fct,
+                          PL_LONG,    tbl->row_size)) { PL_fail; }
+
+  fct = PL_new_functor(PL_new_atom("nrows"), 1);
+  if (!PL_unify_list(lst, ele, lst)) { PL_fail; }
+  if (!PL_unify_term(ele, PL_FUNCTOR, fct,
+                          PL_LONG,    tbl->nrows)) { PL_fail; }
+
+  fct = PL_new_functor(PL_new_atom("highestrow"), 1);
+  if (!PL_unify_list(lst, ele, lst)) { PL_fail; }
+  if (!PL_unify_term(ele, PL_FUNCTOR, fct,
+                          PL_LONG,    tbl->highestrow)) { PL_fail; }
+
+  fct = PL_new_functor(PL_new_atom("nalloc"), 1);
+  if (!PL_unify_list(lst, ele, lst)) { PL_fail; }
+  if (!PL_unify_term(ele, PL_FUNCTOR, fct,
+                          PL_LONG,    tbl->nalloc)) { PL_fail; }
+
+  return PL_unify_nil(lst);
 }
 
 foreign_t swi_tbl_create(term_t tblname, term_t maxrows, term_t allocrows,
@@ -234,6 +293,7 @@ foreign_t swi_tbl_has_idx(term_t in_tblid, term_t in_idx)
   }
   if (tbl_defs[tblid].isvalid[rowidx] != '1')
   {
+    //printf("@%ld -> '%c'\n", rowidx, tbl_defs[tblid].isvalid[rowidx]);
     PL_fail;
   }
   PL_succeed;
@@ -244,24 +304,25 @@ foreign_t swi_tbl_next_idx(term_t in_tblid, term_t out_idx, control_t handle)
   int tblid;
   if (!access_tbl_id(in_tblid, &tblid)) { PL_fail; }
   if (!PL_is_variable(out_idx)) { PL_fail; }
+  struct tabledef *tbl = &tbl_defs[tblid];
 
   long *lastidx;
   switch (PL_foreign_control(handle)) {
     case PL_FIRST_CALL:
       // none
-      if (tbl_defs[tblid].nrows <= 0)
+      if (tbl->nrows <= 0)
       {
         PL_fail;
       }
-      // TODO: search for first valid row
+      // search for first valid row
       long idx = 0;
-      for (; idx <= tbl_defs[tblid].highestrow; idx++) {
-        if (tbl_defs[tblid].isvalid[idx] == '1')
+      for (; idx <= tbl->highestrow; idx++) {
+        if (tbl->isvalid[idx] == '1')
         {
           break;
         }
       }
-      if (tbl_defs[tblid].nrows == 1)
+      if (tbl->nrows == 1)
       {
         if (!PL_unify_integer(out_idx, idx)) { PL_fail; }
         PL_succeed;
@@ -279,24 +340,161 @@ foreign_t swi_tbl_next_idx(term_t in_tblid, term_t out_idx, control_t handle)
       }
     case PL_REDO:
       lastidx = PL_foreign_context_address(handle);
-      // TODO: search for next valid row
+      // search for next valid row
       *lastidx += 1;
-      while (*lastidx <= tbl_defs[tblid].highestrow)
+      while (*lastidx <= tbl->highestrow)
       {
-        if (tbl_defs[tblid].isvalid[*lastidx] == '1')
+        if (tbl->isvalid[*lastidx] == '1')
         {
           break;
         }
         *lastidx += 1;
       }
-      if (tbl_defs[tblid].isvalid[*lastidx] != '1')
+      if (tbl->isvalid[*lastidx] != '1')
       {
         free(lastidx);
         PL_fail;
       }
       else
       {
-        if (*lastidx == tbl_defs[tblid].highestrow)
+        if (*lastidx == tbl->highestrow)
+        {
+          if (PL_unify_integer(out_idx, *lastidx));
+          free(lastidx);
+          PL_succeed;
+        }
+        else
+        {
+          if (PL_unify_integer(out_idx, *lastidx));
+          PL_retry_address(lastidx);
+        }
+      }
+    case PL_PRUNED:
+      lastidx = PL_foreign_context_address(handle);
+      free(lastidx);
+      PL_succeed;
+  }
+  PL_fail;
+}
+
+foreign_t swi_tbl_find_idx(term_t in_tblid, term_t in_ncol, term_t in_value, term_t out_idx, control_t handle)
+{
+  int tblid;
+  if (!access_tbl_id(in_tblid, &tblid)) { PL_fail; }
+  if (!PL_is_variable(out_idx)) { PL_fail; }
+  struct tabledef *tbl = &tbl_defs[tblid];
+  long ncol;
+  if (!PL_get_long(in_ncol, &ncol) || ncol < 0) { PL_fail; }
+  if (ncol >= tbl->arity) { PL_fail; }
+  char criterium[12];
+  size_t matchlen = tbl->col_size[ncol];
+  size_t fldoffset = tbl->col_offset[ncol];
+  switch (tbl->col_type[ncol]) {
+    case COL_UCHAR:
+    case COL_CHAR:
+    {
+      long t;
+      if (!PL_get_long(in_value, &t)) { PL_fail; }
+      char c = t & 0xff;
+      memcpy(&criterium, &c, matchlen);
+      break;
+    }
+    case COL_UINT32:
+    case COL_INT32:
+    {
+      long t;
+      if (!PL_get_long(in_value, &t)) { PL_fail; }
+      int32_t v = t & 0xffffffff;
+      memcpy(&criterium, &v, matchlen);
+      break;
+    }
+    case COL_UINT64:
+    case COL_INT64:
+    {
+      int64_t t;
+      if (!PL_get_int64(in_value, &t)) { PL_fail; }
+      memcpy(&criterium, &t, matchlen);
+      break;
+    }
+    case COL_DOUBLE:
+    {
+      double t;
+      if (!PL_get_float(in_value, &t)) { PL_fail; }
+      memcpy(&criterium, &t, matchlen);
+      break;
+    }
+    case COL_ATOM:
+    {
+      atom_t t;
+      if (!PL_get_atom(in_value, &t)) { PL_fail; }
+      memcpy(&criterium, &t, matchlen);
+      break;
+    }
+  }
+
+  long *lastidx;
+  char *dp;
+  switch (PL_foreign_control(handle)) {
+    case PL_FIRST_CALL:
+      // none
+      if (tbl->nrows <= 0)
+      {
+        PL_fail;
+      }
+      // search for first valid row matching criterium
+      long idx = 0;
+      dp = tbl->data_point + fldoffset + (idx * tbl->row_size);
+      for (; idx <= tbl->highestrow; idx++) {
+        if (tbl->isvalid[idx] == '1' &&
+            dp[0] == criterium[0] &&
+            strncmp(dp, criterium, matchlen) == 0)
+        {
+          break;
+        }
+        dp += tbl->row_size;
+      }
+      if (tbl->nrows == 1)
+      {
+        if (!PL_unify_integer(out_idx, idx)) { PL_fail; }
+        PL_succeed;
+      }
+      lastidx = malloc(sizeof(long));
+      *lastidx = idx;
+      if (PL_unify_integer(out_idx, *lastidx))
+      {
+        PL_retry_address(lastidx);
+      }
+      else
+      {
+        free(lastidx);
+        PL_fail;
+      }
+    case PL_REDO:
+      lastidx = PL_foreign_context_address(handle);
+      // search for next valid row
+      *lastidx += 1;
+      char found = 0;
+      dp = tbl->data_point + fldoffset + (*lastidx * tbl->row_size);
+      while (*lastidx <= tbl->highestrow)
+      {
+        if (tbl->isvalid[*lastidx] == '1' &&
+            dp[0] == criterium[0] &&
+            strncmp(dp, criterium, matchlen) == 0)
+        {
+          found = 1;
+          break;
+        }
+        *lastidx += 1;
+        dp += tbl->row_size;
+      }
+      if (found == 0)
+      {
+        free(lastidx);
+        PL_fail;
+      }
+      else
+      {
+        if (*lastidx == tbl->highestrow)
         {
           if (PL_unify_integer(out_idx, *lastidx));
           free(lastidx);
@@ -336,7 +534,7 @@ foreign_t swi_tbl_set_idx_value(term_t in_tblid, term_t in_idx, term_t in_values
     {
       tbl->isvalid = ptr;
       // invalidate all new data
-      int r0 = tbl->alloc_rows;
+      int r0 = tbl->nalloc / tbl->row_size;
       for (; r0 < tbl->alloc_rows + rowidx; r0++) {
         tbl->isvalid[r0] = '0';
       }
@@ -374,10 +572,7 @@ foreign_t swi_tbl_set_idx_value(term_t in_tblid, term_t in_idx, term_t in_values
       case COL_CHAR:
       {
         long t;
-        if (!PL_get_long(hd, &t))
-        {
-          PL_fail;
-        }
+        if (!PL_get_long(hd, &t)) { PL_fail; }
         char c = t & 0xff;
         memcpy(dp+tbl->col_offset[colcount],
                &c,
@@ -388,12 +583,10 @@ foreign_t swi_tbl_set_idx_value(term_t in_tblid, term_t in_idx, term_t in_values
       case COL_INT32:
       {
         long t;
-        if (!PL_get_long(hd, &t))
-        {
-          PL_fail;
-        }
+        if (!PL_get_long(hd, &t)) { PL_fail; }
+        int32_t v = t & 0xffffffff;
         memcpy(dp+tbl->col_offset[colcount],
-               &t,
+               &v,
                tbl->col_size[colcount]);
         break;
       }
@@ -401,10 +594,7 @@ foreign_t swi_tbl_set_idx_value(term_t in_tblid, term_t in_idx, term_t in_values
       case COL_INT64:
       {
         int64_t t;
-        if (!PL_get_int64(hd, &t))
-        {
-          PL_fail;
-        }
+        if (!PL_get_int64(hd, &t)) { PL_fail; }
         memcpy(dp+tbl->col_offset[colcount],
                &t,
                tbl->col_size[colcount]);
@@ -413,10 +603,7 @@ foreign_t swi_tbl_set_idx_value(term_t in_tblid, term_t in_idx, term_t in_values
       case COL_ATOM:
       {
         atom_t t;
-        if (!PL_get_atom(hd, &t))
-        {
-          PL_fail;
-        }
+        if (!PL_get_atom(hd, &t)) { PL_fail; }
         PL_register_atom(t); // prevent gc of atom
         memcpy(dp+tbl->col_offset[colcount],
                &t,
@@ -426,10 +613,7 @@ foreign_t swi_tbl_set_idx_value(term_t in_tblid, term_t in_idx, term_t in_values
       case COL_DOUBLE:
       {
         double t;
-        if (!PL_get_float(hd, &t))
-        {
-          PL_fail;
-        }
+        if (!PL_get_float(hd, &t)) { PL_fail; }
         memcpy(dp+tbl->col_offset[colcount],
                &t,
                tbl->col_size[colcount]);
