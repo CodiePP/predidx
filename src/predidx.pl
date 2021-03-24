@@ -26,12 +26,12 @@
 
         idx_create32/2,
         idx_add32/4,
-        idx_find32/4,
-        idx_destroy32/1
-%        idx_create64/2,
-%        idx_add64/4,
-%        idx_find64/4,
-%        idx_destroy64/1
+        idx_find32/5,
+        idx_destroy32/1,
+        idx_create64/2,
+        idx_add64/4,
+        idx_find64/5,
+        idx_destroy64/1
     ]).
 
 :- use_foreign_library(sbcl('predidx')).
@@ -126,25 +126,25 @@ idx_add32(Xid, Key, Dlen, Value) :-
     nonvar(Xid), integer(Key), integer(Dlen), nonvar(Value),
     pl_idx_add32(Xid, Key, Dlen, Value).
 
-idx_find32(Xid, Key, Count, Results) :-
-    nonvar(Xid), integer(Key), var(Count), var(Results),
-    pl_idx_find32(Xid, Key, Count, Results).
+idx_find32(Xid, Key, Dlen, Count, Results) :-
+    nonvar(Xid), integer(Key), integer(Dlen), var(Count), var(Results),
+    pl_idx_find32(Xid, Key, Dlen, Count, Results).
 
 idx_destroy32(Xid) :-
     nonvar(Xid), pl_idx_destroy32(Xid).
 
-%idx_create64(Dlen, Xid) :-
-%    integer(Dlen), var(Xid),
-%    pl_idx_create64(Dlen, Xid).
+idx_create64(Dlen, Xid) :-
+    integer(Dlen), var(Xid),
+    pl_idx_create64(Dlen, Xid).
 
-%idx_add64(Xid, Key, Dlen, Value) :-
-%    nonvar(Xid), integer(Key), integer(Dlen), nonvar(Value),
-%    pl_idx_add64(Xid, Key, Dlen, Value).
+idx_add64(Xid, Key, Dlen, Value) :-
+    nonvar(Xid), integer(Key), integer(Dlen), nonvar(Value),
+    pl_idx_add64(Xid, Key, Dlen, Value).
 
-%idx_find64(Xid, Key, Count, Results) :-
-%    nonvar(Xid), integer(Key), var(Count), var(Results),
-%    pl_idx_find64(Xid, Key, Count, Results).
+idx_find64(Xid, Key, Dlen, Count, Results) :-
+    nonvar(Xid), integer(Key), integer(Dlen), var(Count), var(Results),
+    pl_idx_find64(Xid, Key, Dlen, Count, Results).
 
-%idx_destroy64(Xid) :-
-%    nonvar(Xid), pl_idx_destroy64(Xid).
+idx_destroy64(Xid) :-
+    nonvar(Xid), pl_idx_destroy64(Xid).
 

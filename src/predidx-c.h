@@ -70,8 +70,14 @@ typedef void* index64_p;
 typedef char data32_t[4];
 typedef char data64_t[8];
 
-extern EXPORT int32_t mk_value32(const char *k);
-extern EXPORT int64_t mk_value64(const char *k);
+// data types can be either 32 or 64 bits wide
+typedef uint32_t T32;
+typedef uint64_t T64;
+
+extern EXPORT T32 mk_value32(const char *k);
+extern EXPORT T64 mk_value64(const char *k);
+extern EXPORT void put_value32(const T32, char[4]);
+extern EXPORT void put_value64(const T64, char[8]);
 
 // create an index where key length is 32/64 bits and data length is dlen (bytes)
 extern EXPORT index32_p create_index32(int dlen);

@@ -7,14 +7,11 @@
 
 #include "predidx-c.h"
 
-// data types can be either 32 or 64 bits wide
-typedef int32_t T32;
-typedef int64_t T64;
 
 void get_value(const char *d, T32 &v);
 void get_value(const char *d, T64 &v);
-void put_value(T32 const &v, char *d);
-void put_value(T64 const &v, char *d);
+void put_value(const T32 v, char *d);
+void put_value(const T64 v, char *d);
 
 #define DataIndex32_4 DataIndex<T32,T32>
 #define DataIndex32_8 DataIndex<T32,T64>
@@ -58,27 +55,6 @@ template class DataIndex32_8;
 template class DataIndex64_4;
 template class DataIndex64_8;
 
-int32_t mk_value32(const char *k)
-{
-    int32_t key = k[3];
-    key |= (int32_t)(k[2])<<8;
-    key |= (int32_t)(k[1])<<16;
-    key |= (int32_t)(k[0])<<24;
-    return key;
-}
-
-int64_t mk_value64(const char *k)
-{
-    int64_t key = k[7];
-    key |= (int64_t)(k[6])<<8;
-    key |= (int64_t)(k[5])<<16;
-    key |= (int64_t)(k[4])<<24;
-    key |= (int64_t)(k[3])<<32;
-    key |= (int64_t)(k[2])<<40;
-    key |= (int64_t)(k[1])<<48;
-    key |= (int64_t)(k[0])<<56;
-    return key;
-}
 void get_value(const char *d, T32 &v) {
     v = mk_value32(d);
 }
@@ -86,21 +62,11 @@ void get_value(const char *d, T64 &v) {
     v = mk_value64(d);
 }
 
-void put_value(T32 const &v, char *d) {
-    d[3] = (char)v&0xff;
-    d[2] = (char)(v>>8)&0xff;
-    d[1] = (char)(v>>16)&0xff;
-    d[0] = (char)(v>>24)&0xff;
+void put_value(const T32 v, char *d) {
+  put_value32(v,d);
 }
-void put_value(T64 const &v, char *d) {
-    d[7] = (char)v&0xff;
-    d[6] = (char)(v>>8)&0xff;
-    d[5] = (char)(v>>16)&0xff;
-    d[4] = (char)(v>>24)&0xff;
-    d[3] = (char)(v>>32)&0xff;
-    d[2] = (char)(v>>40)&0xff;
-    d[1] = (char)(v>>48)&0xff;
-    d[0] = (char)(v>>56)&0xff;
+void put_value(T64 const v, char *d) {
+  put_value64(v,d);
 }
 
 /* exported C functions */
@@ -259,7 +225,7 @@ int cpp_test64()
 {
   DataIndex64_4 t1;
   char s1[9] = "key10000";
-  auto k1 = mk_value64(s1);
+  T64 k1 = mk_value64(s1);
   char q1[9]; put_value(k1, q1);
   assert((q1[0]==s1[0]) && (q1[1]==s1[1]) && (q1[2]==s1[2]) && (q1[3]==s1[3]) &&
          (q1[4]==s1[4]) && (q1[5]==s1[5]) && (q1[6]==s1[6]) && (q1[7]==s1[7]));
