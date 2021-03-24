@@ -18,6 +18,7 @@
 
 # C/C++ compiler and flags
 CC = gcc
+CXX = g++
 OPT = -O1 #-O3 -pipe -fomit-frame-pointer
 DEF = -D$(ARCH) -mmacosx-version-min=10.10
 DEBUG = -g

@@ -21,6 +21,8 @@ ARCH=IRIX
 endif
 include $(ARCH).def
 
+CFLAGS = $(DEF) $(OPT) $(DEBUG) $(WARN) $(PIC)
+
 SWI_CFLAGS = $(DEF) $(OPT) $(SWI_ARCH_INC) $(DEBUG) $(WARN) $(PIC)
 SWI_LDFLAGS = $(SWI_ARCH_LDFLAGS)
 SWI_LDLIBS = $(SWI_ARCH_LIBS)
@@ -38,11 +40,15 @@ GP_SRCS = $(SRCDIR)/gp-predidx.pl $(SRCDIR)/gp-predidx-c.c
 GP_OBJS = $(OBJDIR)/gp-predidx.gpo $(OBJDIR)/gp-predidx-c.gpo $(OBJDIR)/predidx-c.o
 
 # object files
-SWI_OBJS = $(OBJDIR)/swi-predidx-c.o $(OBJDIR)/predidx-c.o
+SWI_OBJS = $(OBJDIR)/swi-predidx-c.o $(OBJDIR)/predidx-c.o $(OBJDIR)/predidx-cpp.o
 
 .SUFFIXES: .c
 
 # other implicit rules
+$(OBJDIR)/%.o : $(SRCDIR)/%.cpp
+	@echo "compiling $<"
+	$(CXX) -std=c++17 -c $(CFLAGS) -o $@ $<
+
 $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	@echo "compiling $<"
 	$(CC) -c $(SWI_CFLAGS) -o $@ $<

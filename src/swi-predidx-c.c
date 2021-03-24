@@ -17,6 +17,10 @@ foreign_t swi_tbl_set_idx_value(term_t tbl_id, term_t idx, term_t values);
 foreign_t swi_tbl_invalidate_idx(term_t tbl_id, term_t idx);
 foreign_t swi_tbl_info(term_t tbl_id, term_t desc);
 foreign_t swi_tbl_find_idx(term_t in_tblid, term_t in_ncol, term_t in_value, term_t out_idx, control_t handle);
+foreign_t swi_idx_create32(term_t in_dlen, term_t out_xid);
+foreign_t swi_idx_destroy32(term_t in_xid);
+foreign_t swi_idx_add32(term_t in_xid, term_t in_key, term_t in_dlen, term_t in_value);
+foreign_t swi_idx_find32(term_t in_xid, term_t in_key, term_t out_count, term_t out_results);
 
 
 install_t install()
@@ -29,6 +33,10 @@ install_t install()
         PL_register_foreign("pl_tbl_invalidate_idx", 2, swi_tbl_invalidate_idx, 0);
         PL_register_foreign("pl_tbl_info", 2, swi_tbl_info, 0);
         PL_register_foreign("pl_tbl_find_idx", 4, swi_tbl_find_idx, PL_FA_NONDETERMINISTIC);
+        PL_register_foreign("pl_idx_create32", 2, swi_idx_create32, 0);
+        PL_register_foreign("pl_idx_destroy32", 1, swi_idx_destroy32, 0);
+        PL_register_foreign("pl_idx_add32", 4, swi_idx_add32, 0);
+        PL_register_foreign("pl_idx_find32", 4, swi_idx_find32, 0);
 }
 
 /* global memory */
@@ -651,5 +659,132 @@ foreign_t swi_tbl_invalidate_idx(term_t in_tblid, term_t in_idx)
   // TODO: if type = COL_ATOM; then PL_unregister_atom(t)
 
   PL_succeed;
+}
+
+foreign_t swi_idx_create32(term_t in_dlen, term_t out_xid)
+{
+  long dlen;
+  if (!PL_get_long(in_dlen, &dlen) || dlen < 0) { PL_fail; }
+  void* xid = create_index32(dlen);
+  return PL_unify_pointer(out_xid, xid);
+}
+
+foreign_t swi_idx_destroy32(term_t in_xid)
+{
+  void* xid = NULL;
+  if (!PL_get_pointer(in_xid, &xid)) { PL_fail; }
+  if (xid) {
+    destroy_index32(xid);
+  }
+  PL_succeed;
+}
+
+int term_to_32(term_t in_value, char out_value[4])
+{
+  int32_t v;
+  switch (PL_term_type(in_value)) {
+    case PL_INTEGER:
+      {
+        long t;
+        if (!PL_get_long(in_value, &t)) { PL_fail; }
+        v = t & 0xffffffff;
+      }
+      break;
+    default:
+      PL_fail;
+  }
+  out_value[3] = (char)v&0xff;
+  out_value[2] = (char)(v>>8)&0xff;
+  out_value[1] = (char)(v>>16)&0xff;
+  out_value[0] = (char)(v>>24)&0xff;
+  PL_succeed;
+}
+
+int term_to_64(term_t in_value, char out_value[8])
+{
+  int64_t v;
+  switch (PL_term_type(in_value)) {
+    case PL_ATOM:
+      {
+        atom_t t;
+        if (!PL_get_atom(in_value, &t)) { PL_fail; }
+        v = t;
+      }
+      break;
+    case PL_INTEGER:
+      {
+        long t;
+        if (!PL_get_long(in_value, &t)) { PL_fail; }
+        v = t;
+      }
+      break;
+    case PL_FLOAT:
+      {
+        double t;
+        if (!PL_get_float(in_value, &t)) { PL_fail; }
+        v = (int64_t)t;
+      }
+      break;
+    default:
+      PL_fail;
+  }
+  out_value[7] = (char)v&0xff;
+  out_value[6] = (char)(v>>8)&0xff;
+  out_value[5] = (char)(v>>16)&0xff;
+  out_value[4] = (char)(v>>24)&0xff;
+  out_value[3] = (char)(v>>32)&0xff;
+  out_value[2] = (char)(v>>40)&0xff;
+  out_value[1] = (char)(v>>48)&0xff;
+  out_value[0] = (char)(v>>56)&0xff;
+  PL_succeed;
+}
+
+foreign_t swi_idx_add32(term_t in_xid, term_t in_key, term_t in_dlen, term_t in_value)
+{
+  void* xid = NULL;
+  if (!PL_get_pointer(in_xid, &xid) || xid == NULL) { PL_fail; }
+  long dlen;
+  if (!PL_get_long(in_dlen, &dlen) || dlen < 0) { PL_fail; }
+  if (!(dlen == 4 || dlen == 8)) { PL_fail; }
+  char k[5];
+  if (!term_to_32(in_key, k)) { PL_fail; }
+  char v[9];
+  if (dlen == 4) {
+    if (!term_to_32(in_value, v)) { PL_fail; }
+  }
+  else if (dlen == 8) {
+    if (!term_to_64(in_value, v)) { PL_fail; }
+  }
+  else
+  {
+    PL_fail;
+  }
+  add_data32(xid, k, dlen, v);
+  PL_succeed;
+}
+
+foreign_t swi_idx_find32(term_t in_xid, term_t in_key, term_t out_count, term_t out_results)
+{
+  void* xid = NULL;
+  if (!PL_get_pointer(in_xid, &xid) || xid == NULL) { PL_fail; }
+  const long dlen = 4; // return type is int32_t (record index)
+  char k[5]; k[4]='\0';
+  term_to_32(in_key, k);
+  const int sz = 1024;
+  char buf[sz];
+  long count = find_data32(xid, k, sz, buf);
+  if (!PL_unify_integer(out_count, count)) { PL_fail; }
+  term_t ele = PL_new_term_ref();
+  term_t lst = PL_copy_term_ref(out_results);
+  int idx = 0, c = 0;
+  while (c < count && idx + dlen <= sz)
+  {
+    if (!PL_unify_list(lst, ele, lst)) { PL_fail; }
+    int32_t t = mk_value32(buf+idx);
+    if (!PL_unify_integer(ele, t)) { PL_fail; }
+    idx += dlen;
+    c++;
+  }
+  return PL_unify_nil(lst);
 }
 
