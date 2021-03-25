@@ -33,7 +33,6 @@ GPLC = gplc
 SWIPL = swipl
 
 # linker for object files
-#LINK = ld
 LINK = g++
 
 # static library
