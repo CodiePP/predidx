@@ -38,13 +38,13 @@ LINK = g++
 ARFLAGS = -ruv
 RANLIB = ranlib
 
-SWI_BASE_PATH = /usr/local/Cellar/swi-prolog/HEAD-cf65970/libexec/lib/swipl/
+SWI_BASE_PATH = /usr/local/opt/swi-prolog
 # include path and library settings
 # add other include paths here, i.e. -I/usr/local/include
-SWI_ARCH_INC = -I${SWI_BASE_PATH}/include/ -I${HOME}/lib/include
+SWI_ARCH_INC = -I${SWI_BASE_PATH}/libexec/lib/swipl/include
 
 # add other linker flags here, i.e. -L/usr/local/lib
-SWI_ARCH_LDFLAGS = -shared -L${SWI_BASE_PATH}/lib/x86_64-darwin/
+SWI_ARCH_LDFLAGS = -shared -L${SWI_BASE_PATH}/libexec/lib/swipl/lib/x86_64-darwin
 
 # add other libraries here, i.e. -liostream
 SWI_ARCH_LIBS = -lswipl
