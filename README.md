@@ -1,3 +1,4 @@
+[![building the module for SWI Prolog](https://github.com/CodiePP/predidx/actions/workflows/make-swi.yml/badge.svg)](https://github.com/CodiePP/predidx/actions/workflows/make-swi.yml)
 
 # Indexed Predicates
 
