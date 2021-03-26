@@ -76,6 +76,11 @@ lib$(MODULE).a: $(OBJDIR) $(GP_OBJS)
 	$(AR) -r -c $@ $(GP_OBJS)
 	$(RANLIB) $@
 
+check:
+	$(SWIPL) -g test -l test/t1.pl | grep 'success.'
+	$(SWIPL) -g test -l test/t2.pl | grep 'success.'
+	$(SWIPL) -g test -l test/t3.pl | grep 'success.'
+
 clean:
 	@echo "Cleaning away everything."
 	@test -d $(OBJDIR) && rm -r $(OBJDIR); true

@@ -15,11 +15,11 @@ jobs:
     - uses: actions/checkout@v2
     - name: install SWI Prolog
       run: sudo apt-get -y install swi-prolog-nox
+    - name: autoconf
+      run: aclocal --force && autoheader --force && autoconf --force
     - name: configure
       run: ./configure
     - name: make swi
       run: make swi
     - name: make check
       run: make check
-    - name: make distcheck
-      run: make distcheck
