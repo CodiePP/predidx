@@ -42,11 +42,11 @@ SWI_OBJS = $(OBJDIR)/swi-predidx-c.o $(OBJDIR)/predidx-c.o $(OBJDIR)/predidx-cpp
 # other implicit rules
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 	@echo "compiling $<"
-	$(CXX) -c $(CXXFLAGS) @DEFS@ -o $@ $<
+	$(CXX) -c @CXXFLAGS@ @DEFS@ -o $@ $<
 
 $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	@echo "compiling $<"
-	$(CC) -c $(CFLAGS) $(SWI_CFLAGS) @DEFS@ -o $@ $<
+	$(CC) -c @CFLAGS@ $(SWI_CFLAGS) @DEFS@ -o $@ $<
 
 $(OBJDIR)/%.gpo : $(SRCDIR)/%.pl
 	@echo "compiling $<"
