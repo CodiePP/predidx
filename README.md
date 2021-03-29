@@ -2,6 +2,28 @@
 
 # Indexed Predicates
 
+## Installation
+
+```sh
+aclocal --force && autoheader --force && autoconf --force
+./configure
+make swi
+```
+
+then, I copy the results to a module directory that SWI Prolog finds:
+```sh
+mkdir -v -p ~/lib/sbcl
+cp -v predidx-* ~/lib/sbcl/predidx
+cp -v src/predidx.qlf ~/lib/sbcl/
+```
+
+(add the following to ~/.swiplrc)
+```sh
+echo ":- assertz(file_search_path(sbcl,'${HOME}/lib/sbcl'))." >> ${HOME}/.swiplrc
+```
+
+## Description
+
 Prolog predicates in tables indexed by their row number. Behind the scenes
 this is the same as an array of a structure type in `C`.
 
