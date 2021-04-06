@@ -17,9 +17,17 @@ cp -v predidx-* ~/lib/sbcl/predidx
 cp -v src/predidx.qlf ~/lib/sbcl/
 ```
 
+Update the swipl config file:
+
+- SWI-Prolog version < 8.1.15<br>
 (add the following to ~/.swiplrc)
 ```sh
 echo ":- assertz(file_search_path(sbcl,'${HOME}/lib/sbcl'))." >> ${HOME}/.swiplrc
+```
+- SWI-Prolog version >= 8.1.15<br>
+run the following from the terminal
+```sh
+echo ":- assertz(file_search_path(sbcl,'${HOME}/lib/sbcl'))." >> ${HOME}/.config/swi-prolog/init.pl
 ```
 
 ## Description
