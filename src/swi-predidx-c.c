@@ -29,6 +29,7 @@ foreign_t swi_idx_find64(term_t in_xid, term_t in_key, term_t in_dlen, term_t ou
 
 install_t install()
 {
+        PL_register_foreign("pl_tbl_info", 2, swi_tbl_info, 0);
         PL_register_foreign("pl_tbl_create", 5, swi_tbl_create, 0);
         PL_register_foreign("pl_tbl_has_idx", 2, swi_tbl_has_idx, 0);
         PL_register_foreign("pl_tbl_next_idx", 2, swi_tbl_next_idx, PL_FA_NONDETERMINISTIC);
